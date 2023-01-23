@@ -8,39 +8,39 @@ import json
 
 
 
-# description will apear in the doc                                 ### NOTE_ : A MODIFIER ET ADAPTER EN FONCTION DE MON SCRIPT
+# description will apear in the doc
 description = """
-Getaround API helps you predict rental price of a listing per day. 
-Getaround is one of the world's largest marketplaces helping users car-sharing. The communities can find a cheaper alternative to car rentals. 
-Getaround car sharing provides tech resources to help users starting a business and making money from their own vehicle business.
-The goal of Getaround API is to serve data that help users estimate daily rental value of their car.
-## Preview
-Where you can: 
-* `/preview` a some random rows in the historical record
-## Model-Prediction
-Where you can: 
-* `/predict` insert your car details to receive an AI-based estimation on daily rental car price.
+Getaround API predicts the daily rental price of a listing. It allows users to estimate the daily rental value of their car.   
+What is GetAround?  
+GetAround is one of the world's largest marketplaces for car-sharing services. Communities cab find a less expensive 
+alternative to car rentals. It assists them in starting a business and earning money from their own vehicle business.  
+## Preview  
+Where you can:  
+* `/preview` a some random rows in the historical record  
+## Model-Prediction  
+Where you can:  
+* `/predict` insert your car details to receive an AI-based estimation on daily rental car price.  
 """
 
 # tags to identify different endpoints                              ### NOTE_ : Definition de l"URL /preview
 tags_metadata = [
     {
         "name": "Preview",
-        "description": "Preview the random cases in dataset",
+        "description": "Preview the random rows",
     },
 
     {
         "name": "Model-Prediction",
-        "description": "Estimate rental price based on machine learning model trained with historical data and XGBoost algorithm"
+        "description": "Estimate rental price based on machine learning model"
     }
 ]
 
 app = FastAPI(
-    title="🚗 Getaround API",
+    title="🔑 Getaround API 🚗",
     description=description,
     version="1.0",
     contact={
-        "name": "Hello, if you would like to learn more about my projects, check out my github.",
+        "name": "Hello, check out my github to learn more about my project.",
         "url": "https://github.com/linda-kinn",                               
     },
     openapi_tags=tags_metadata
@@ -64,91 +64,69 @@ class PredictionFeatures(BaseModel):
 @app.get("/", tags=["Preview"])
 async def random_data(rows: int= 3):
     """
-    Get a sample of your whole dataset. 
-    You can specify how many rows you want by specifying a value for `rows`, default is `10`.
-    To avoid loading full dataset, row amount is limited to 20.
+    Get a sample of your whole dataset.   
+    You can specify amount of rows that you want by specifying a value for `rows`, default is `3`.
     """
     try:
-        if rows < 21 :
+        if rows < 51 :
             fname ="https://full-stack-assets.s3.eu-west-3.amazonaws.com/Deployment/get_around_pricing_project.csv"
             df = pd.read_csv(fname)
             sample = df.sample(rows)
             response0= sample.to_json(orient='records')
         else:
-            response0 = json.dumps({"message" : "Error! Please select a row number not more than 20."})
+            response0 = json.dumps({"message" : "Error! Row number should not be more than 50."})
     except:
-            response0 = json.dumps({"message" : "Error! Problem in accessing to historical data."})
+            response0 = json.dumps({"message" : "Error! Problem."})
 
-                                                                ## NOTE_ : OPTIONNEL
-mssg = """                                                    
-    Error! """
-#       PLease check your input. It should be in json format. Example input:
-#     "model_key": "Volkswagen",
-#     "mileage": 17500,
-#     "engine_power": 190,
-#     "fuel": "diesel",
-#     "paint_color": "black",
-#     "car_type": "sedan",
-#     "private_parking_available": True,
-#     "has_gps": True,
-#     "has_air_conditioning": True,
-#     "automatic_car": True,
-#     "has_getaround_connect": True,
-#     "has_speed_regulator": True,
-#     "winter_tires": True
-#     """
 
 @app.post("/predict", tags=["Model-Prediction"])
 async def predict(predictionFeatures: PredictionFeatures):
     """
-    Prediction for single set of input variables. Possible input values in order are:
-    model_key: str
-    mileage: float
-    engine_power: float
-    fuel: str
-    paint_color: str
-    car_type: str
-    private_parking_available: bool
-    has_gps: bool
-    has_air_conditioning: bool
-    automatic_car: bool
-    has_getaround_connect: bool
-    has_speed_regulator: bool
-    winter_tires: bool
-    Endpoint will return a dictionnary like this:
+    Prediction for single set of input variables. Possible input values are:  
+    model_key: str  
+    mileage: float  
+    engine_power: float  
+    fuel: str  
+    paint_color: str  
+    car_type: str  
+    private_parking_available: bool  
+    has_gps: bool  
+    has_air_conditioning: bool  
+    automatic_car: bool  
+    has_getaround_connect: bool  
+    has_speed_regulator: bool  
+    winter_tires: bool  
+    Endpoint returns a dictionnary in the following format:  
     ```
-    {'prediction': rental_price_per_day}
+    {'prediction': rental_price_per_day}  
     ```
-    You need to give this endpoint all columns values as a dictionnary, or a form data.
+    You need to use values as a dictionnary, or a form data.  
     """
     if predictionFeatures.json :  
       # Printing JSON as dictionnary for user to check variables
-      #  requested_ = predictionFeatures.json()
         print(predictionFeatures)
-      # if len (requested_.keys()) == 13 :  
         # Read data 
         df = pd.DataFrame(dict(predictionFeatures), index=[0])
 
         # Load the models from local
-        prepro_getaround = 'prepro.joblib' # preprocessing model
+        # prepro_getaround = 'prepro.joblib' # preprocessing model - *_* pas besoin de prepro
         model_getaround  = 'model.joblib' # random forest model
 
-        preprocess = joblib.load(prepro_getaround)
+        # preprocess = joblib.load(prepro_getaround) # *_* pas besoin de prepro
         regressor = joblib.load(model_getaround)
         
         try: 
-            X_val = preprocess.transform(df.head(16))
-            Y_pred = regressor.predict(X_val)
+            # X_val = preprocess.transform(df.head(16)) # *_* pas besoin de prepro
+            Y_pred = regressor.predict(df)
             print(Y_pred)
             # Prediction
             # Format response
-            # Return the result as JSON but first we need to transform the
             response = {'Predicted rental price per day in dollars': round(Y_pred.tolist()[0],1)}
         except:
-            response = json.dumps({"message" : mssg})
+            response = json.dumps({"message" : """Error! Check your input format."""})
         return response
     else:
-        msg = json.dumps({"message" : mssg})
+        msg = json.dumps({"message" : """Error! Check your input format."""})
         return msg
 
 if __name__ == "__main__":
